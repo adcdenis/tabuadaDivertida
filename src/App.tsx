@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, BookOpen, BarChart3, ArrowLeft, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import packageJson from '../package.json';
 
 type Screen = 'welcome' | 'home' | 'study-config' | 'study' | 'test-config' | 'test' | 'test-result' | 'stats';
 
@@ -707,6 +708,11 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Rodapé */}
+      <footer className="footer">
+        <p>&copy; {new Date().getFullYear()} Antonio Denilson Canuto</p>
+        <p>Versão {packageJson.version}</p>
+      </footer>
     </div>
   );
 };

@@ -59,6 +59,7 @@ body.theme-azul {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  flex: 1;
 }
 
 .glass-panel {
@@ -340,4 +341,16 @@ h1.gradient-text {
 .input-field:focus {
   border-color: var(--primary);
   box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+.footer {
+  margin-top: auto;
+  padding: 1rem 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
