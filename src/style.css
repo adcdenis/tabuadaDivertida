@@ -422,3 +422,96 @@ h1.gradient-text {
   from { transform: scale(1); filter: drop-shadow(0 0 20px currentColor); }
   to { transform: scale(1.05); filter: drop-shadow(0 0 40px currentColor); }
 }
+
+.theme-toggle {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 100;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary);
+}
+
+/* Responsive Media Queries */
+@media (max-width: 520px) {
+  .app-container {
+    padding: 1rem 0.75rem;
+    gap: 1rem;
+  }
+
+  .glass-panel {
+    padding: 1rem;
+  }
+
+  h1.gradient-text {
+    font-size: 2rem;
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  /* Specific adjustment for achievement cards on mobile */
+  .grid-cols-2 > .flex-row.flex-center {
+    justify-content: flex-start;
+    padding: 0.8rem !important;
+  }
+  
+  .study-card {
+    height: 160px;
+  }
+  
+  .study-card-front, .study-card-back {
+    font-size: 2.2rem;
+  }
+  
+  .timer-badge {
+    top: 1rem;
+    right: 1rem;
+    font-size: 1rem;
+    padding: 0.3rem 0.7rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-container {
+    padding: 0.75rem 0.5rem;
+  }
+  
+  h1.gradient-text {
+    font-size: 1.8rem;
+  }
+  
+  .grid-cols-4 {
+    gap: 0.3rem;
+  }
+  
+  .table-selector-btn {
+    font-size: 1rem;
+    padding: 0.5rem;
+  }
+}

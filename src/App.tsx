@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, BookOpen, BarChart3, ArrowLeft, Check, Trophy, Star, NotebookPen, HelpCircle, X } from 'lucide-react';
+import { Play, BookOpen, BarChart3, ArrowLeft, Check, Trophy, Star, NotebookPen, HelpCircle, X, Sun, Moon } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import packageJson from '../package.json';
 
@@ -448,11 +448,16 @@ const App: React.FC = () => {
   return (
     <div className="app-container">
       {/* Header with Back Button */}
-      {currentScreen !== 'home' && currentScreen !== 'welcome' && (
-        <button className="btn btn-secondary" style={{ alignSelf: 'flex-start' }} onClick={handleBack}>
-          <ArrowLeft size={20} /> Voltar
-        </button>
-      )}
+      {/* Global Theme Toggle */}
+      <button 
+        className="theme-toggle" 
+        onClick={toggleTheme} 
+        title={`Mudar para tema ${theme === 'rosa' ? 'Azul' : 'Rosa'}`}
+      >
+        {theme === 'rosa' ? <Moon size={24} /> : <Sun size={24} />}
+      </button>
+
+      {/* Header removed as Back button moved to bottom of specific screens */}
 
       {currentScreen === 'welcome' && (
         <div className="glass-panel flex-col flex-center animate-fade-in" style={{ flex: 1 }}>
@@ -542,7 +547,19 @@ const App: React.FC = () => {
           )}
           <p style={{ textAlign: 'center', marginBottom: '2rem' }}>Pronto para aprender e testar seus conhecimentos em matemática?</p>
           
-          {/* Ranking System */}
+          <div className="flex-col" style={{ width: '100%', maxWidth: '300px', marginBottom: '2rem' }}>
+            <button className="btn btn-primary" onClick={() => setCurrentScreen('study-config')}>
+              <BookOpen size={24} /> Estudar
+            </button>
+            <button className="btn btn-primary" onClick={() => setCurrentScreen('test-config')}>
+              <Play size={24} /> Teste
+            </button>
+            <button className="btn btn-secondary" onClick={() => setCurrentScreen('stats')}>
+              <BarChart3 size={24} /> Estatísticas
+            </button>
+          </div>
+          
+          {/* Ranking System moved to bottom */}
           <div className="glass-panel" style={{ width: '100%', marginBottom: '1.5rem', padding: '1rem' }}>
             <div className="flex-col" style={{ marginBottom: '1rem', gap: '0.5rem' }}>
               <div className="flex-row">
@@ -673,22 +690,6 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div className="flex-col" style={{ width: '100%', maxWidth: '300px' }}>
-            <button className="btn btn-primary" onClick={() => setCurrentScreen('study-config')}>
-              <BookOpen size={24} /> Estudar
-            </button>
-            <button className="btn btn-primary" onClick={() => setCurrentScreen('test-config')}>
-              <Play size={24} /> Teste
-            </button>
-            <button className="btn btn-secondary" onClick={() => setCurrentScreen('stats')}>
-              <BarChart3 size={24} /> Estatísticas
-            </button>
-          </div>
-          
-          <button className="btn btn-secondary" style={{ marginTop: '2rem', fontSize: '0.9rem', padding: '0.5rem 1rem' }} onClick={toggleTheme}>
-            Mudar Tema ({theme === 'rosa' ? 'Azul' : 'Rosa'})
-          </button>
         </div>
       )}
 
@@ -733,6 +734,10 @@ const App: React.FC = () => {
             >
               <Play size={20} /> Iniciar Estudo
             </button>
+
+            <button className="btn btn-secondary" style={{ marginTop: '1rem' }} onClick={handleBack}>
+              <ArrowLeft size={20} /> Voltar
+            </button>
           </div>
         </div>
       )}
@@ -770,6 +775,10 @@ const App: React.FC = () => {
           >
             {studyIndex < studyQuestions.length - 1 ? 'Próximo' : 'Finalizar Estudo'}
           </button>
+
+          <button className="btn btn-secondary" style={{ marginTop: '1rem', width: '100%' }} onClick={handleBack}>
+            <ArrowLeft size={20} /> Sair do Estudo
+          </button>
         </div>
       )}
 
@@ -797,6 +806,10 @@ const App: React.FC = () => {
               disabled={testTables.length === 0}
             >
               <Play size={20} /> Iniciar Teste (10 questões)
+            </button>
+
+            <button className="btn btn-secondary" style={{ marginTop: '1rem' }} onClick={handleBack}>
+              <ArrowLeft size={20} /> Voltar
             </button>
           </div>
         </div>
@@ -841,6 +854,10 @@ const App: React.FC = () => {
               );
             })}
           </div>
+
+          <button className="btn btn-secondary" style={{ marginTop: '2rem', width: '100%' }} onClick={handleBack}>
+            <ArrowLeft size={20} /> Sair do Teste
+          </button>
         </div>
       )}
 
@@ -1009,6 +1026,10 @@ const App: React.FC = () => {
               </div>
             )}
           </div>
+          
+          <button className="btn btn-secondary" style={{ marginTop: '1rem' }} onClick={handleBack}>
+            <ArrowLeft size={20} /> Voltar
+          </button>
         </div>
       )}
       {/* Rodapé */}
