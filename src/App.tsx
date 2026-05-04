@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, BookOpen, BarChart3, ArrowLeft, Check, Trophy, Star, NotebookPen } from 'lucide-react';
+import { Play, BookOpen, BarChart3, ArrowLeft, Check, Trophy, Star, NotebookPen, HelpCircle, X } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import packageJson from '../package.json';
 
@@ -76,16 +76,24 @@ const App: React.FC = () => {
     totalStudyTime: 0
   });
 
-  const getRank = () => {
-    const total = achievements.trophies.length + achievements.stars + achievements.notebooks;
-    if (total >= 205) return 'Darth Vader';
-    if (total >= 180) return 'Jedi';
-    if (total >= 150) return 'Ninja';
-    if (total >= 120) return 'Mestre Supremo';
-    if (total >= 90) return 'Mestre';
-    if (total >= 60) return 'Aprendiz';
-    if (total >= 30) return 'Amador';
-    return 'Iniciante';
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [celebration, setCelebration] = useState<'trophy' | 'star' | 'study' | 'rank' | null>(null);
+
+  const RANKS = [
+    { name: 'Iniciante', min: 0 },
+    { name: 'Amador', min: 5 },
+    { name: 'Aprendiz', min: 10 },
+    { name: 'Mestre', min: 14 },
+    { name: 'Mestre Supremo', min: 18 },
+    { name: 'Ninja', min: 22 },
+    { name: 'Jedi', min: 26 },
+    { name: 'Darth Vader', min: 29 }
+  ];
+
+  const getRank = (pts?: number) => {
+    const total = pts !== undefined ? pts : achievements.trophies.length + achievements.stars + achievements.notebooks;
+    const currentRank = [...RANKS].reverse().find(r => total >= r.min);
+    return currentRank ? currentRank.name : 'Iniciante';
   };
 
   useEffect(() => {
@@ -212,14 +220,25 @@ const App: React.FC = () => {
 
     // Update study achievements
     const newTotalTime = achievements.totalStudyTime + timeSpent;
-    const newNotebooks = Math.min(100, Math.floor(newTotalTime / (10 * 60)));
+    const newNotebooks = Math.min(10, Math.floor(newTotalTime / (10 * 60)));
     const updatedAchievements = { 
       ...achievements, 
       totalStudyTime: newTotalTime,
       notebooks: newNotebooks
     };
+    const oldTotal = achievements.trophies.length + achievements.stars + achievements.notebooks;
+    const newTotal = updatedAchievements.trophies.length + updatedAchievements.stars + updatedAchievements.notebooks;
+
     setAchievements(updatedAchievements);
     localStorage.setItem('tabuada_achievements', JSON.stringify(updatedAchievements));
+
+    if (getRank(newTotal) !== getRank(oldTotal)) {
+      setCelebration('rank');
+      setTimeout(() => setCelebration(null), 3000);
+    } else if (newNotebooks > achievements.notebooks) {
+      setCelebration('study');
+      setTimeout(() => setCelebration(null), 3000);
+    }
   };
 
   const toggleStudyTable = (table: number) => {
@@ -358,13 +377,37 @@ const App: React.FC = () => {
       let changed = false;
 
       if (testTables.length === 1) {
+        // Trophy Effect (Golden Blast)
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#f59e0b', '#fbbf24', '#ffffff']
+        });
+
         const table = testTables[0];
         if (!achievements.trophies.includes(table) && achievements.trophies.length < 10) {
           updatedAchievements.trophies = [...achievements.trophies, table];
           changed = true;
         }
       } else if (testTables.length > 1) {
-        if (achievements.stars < 100) {
+        // Random Star Effect (Epic Side Cannons)
+        const duration = 2 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
+
+        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+        const interval: any = setInterval(function() {
+          const timeLeft = animationEnd - Date.now();
+          if (timeLeft <= 0) return clearInterval(interval);
+
+          const particleCount = 50 * (timeLeft / duration);
+          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
+
+        if (achievements.stars < 10) {
           updatedAchievements.stars += 1;
           changed = true;
         }
@@ -373,6 +416,21 @@ const App: React.FC = () => {
       if (changed) {
         setAchievements(updatedAchievements);
         localStorage.setItem('tabuada_achievements', JSON.stringify(updatedAchievements));
+
+        const oldTotal = achievements.trophies.length + achievements.stars + achievements.notebooks;
+        const newTotal = updatedAchievements.trophies.length + updatedAchievements.stars + updatedAchievements.notebooks;
+
+        if (getRank(newTotal) !== getRank(oldTotal)) {
+          setCelebration('rank');
+          setTimeout(() => setCelebration(null), 3000);
+        } else {
+          setCelebration(testTables.length === 1 ? 'trophy' : 'star');
+          setTimeout(() => setCelebration(null), 3000);
+        }
+      } else {
+        // Just general 10/10 celebration if no new points earned (though 10/10 usually earns points)
+        setCelebration(testTables.length === 1 ? 'trophy' : 'star');
+        setTimeout(() => setCelebration(null), 3000);
       }
     }
 
@@ -486,14 +544,56 @@ const App: React.FC = () => {
           
           {/* Ranking System */}
           <div className="glass-panel" style={{ width: '100%', marginBottom: '1.5rem', padding: '1rem' }}>
-            <div className="flex-row" style={{ marginBottom: '0.5rem' }}>
-              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--accent)' }}>NÍVEL: {getRank().toUpperCase()}</span>
-              <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{achievements.trophies.length + achievements.stars + achievements.notebooks} pts</span>
+            <div className="flex-col" style={{ marginBottom: '1rem', gap: '0.5rem' }}>
+              <div className="flex-row">
+                <div className="flex-row" style={{ gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--accent)' }}>MEU NÍVEL</span>
+                  <button 
+                    onClick={() => setShowHelpModal(true)}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 0, display: 'flex' }}
+                    title="Como ganhar pontos?"
+                  >
+                    <HelpCircle size={18} />
+                  </button>
+                </div>
+                <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{achievements.trophies.length + achievements.stars + achievements.notebooks} / 30 pts</span>
+              </div>
+              
+              {/* Rank Progression Bar */}
+              <div style={{ display: 'flex', overflowX: 'auto', gap: '0.4rem', paddingBottom: '0.5rem', scrollbarWidth: 'none' }} className="no-scrollbar">
+                {RANKS.map(r => {
+                  const isCurrent = getRank() === r.name;
+                  const isUnlocked = (achievements.trophies.length + achievements.stars + achievements.notebooks) >= r.min;
+                  return (
+                    <div 
+                      key={r.name} 
+                      style={{ 
+                        flexShrink: 0,
+                        padding: '0.3rem 0.6rem',
+                        borderRadius: '0.5rem',
+                        background: isCurrent ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
+                        color: isCurrent ? 'white' : isUnlocked ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)',
+                        fontSize: '0.65rem',
+                        fontWeight: isCurrent ? 900 : 700,
+                        border: isCurrent ? 'none' : isUnlocked ? '1px solid rgba(255,255,255,0.1)' : '1px dashed rgba(255,255,255,0.1)',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {r.name.toUpperCase()}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Large Current Rank Display */}
+              <h2 style={{ margin: '0.5rem 0', color: 'var(--accent)', fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {getRank()}
+              </h2>
             </div>
             {/* Trophies Collection */}
-            <div className="flex-col" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
-              <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textAlign: 'left' }}>COLEÇÃO DE TROFÉUS</span>
-              <div className="grid-cols-4" style={{ gap: '0.4rem' }}>
+            <div className="flex-col" style={{ gap: '0.3rem', marginBottom: '1.2rem' }}>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5, textAlign: 'left' }}>TROFÉUS CONQUISTADOS</span>
+              <div className="flex-row" style={{ gap: '0.25rem', width: '100%' }}>
                 {[2, 3, 4, 5, 6, 7, 8, 9].map(t => {
                   const hasTrophy = achievements.trophies.includes(t);
                   return (
@@ -501,31 +601,75 @@ const App: React.FC = () => {
                       key={t} 
                       className="flex-col flex-center" 
                       style={{ 
-                        padding: '0.4rem', 
-                        background: hasTrophy ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.05)', 
-                        borderRadius: '0.5rem',
-                        opacity: hasTrophy ? 1 : 0.3,
+                        flex: 1,
+                        padding: '0.3rem 0', 
+                        background: hasTrophy ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.03)', 
+                        borderRadius: '0.4rem',
+                        opacity: hasTrophy ? 1 : 0.2,
                         border: hasTrophy ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid transparent',
                         transition: 'all 0.3s ease'
                       }}
-                      title={hasTrophy ? `Tabuada do ${t} dominada!` : `Tabuada do ${t} ainda não concluída`}
+                      title={`Tabuada do ${t}`}
                     >
-                      <Trophy size={16} color={hasTrophy ? "#f59e0b" : "#cbd5e1"} />
-                      <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>{t}</span>
+                      <Trophy size={14} color={hasTrophy ? "#f59e0b" : "#cbd5e1"} />
+                      <span style={{ fontSize: '0.6rem', fontWeight: 900 }}>{t}</span>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <div className="grid-cols-2" style={{ gap: '0.5rem' }}>
-              <div className="flex-row flex-center" style={{ gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '0.75rem' }}>
-                <Star size={20} color="#3b82f6" />
-                <span style={{ fontSize: '1rem', fontWeight: 800 }}>{achievements.stars}</span>
+            <div className="grid-cols-2" style={{ gap: '0.8rem' }}>
+              <div className="flex-row flex-center" style={{ gap: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem', borderRadius: '1rem', flex: 1 }}>
+                <div style={{ position: 'relative', width: '50px', height: '50px' }}>
+                  <div style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: '50%', 
+                    background: `conic-gradient(var(--primary) ${achievements.stars * 36}deg, rgba(255,255,255,0.1) 0deg)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.5s ease'
+                  }}>
+                    <div style={{ width: '80%', height: '80%', borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Star size={24} color="var(--primary)" fill={achievements.stars === 10 ? "var(--primary)" : "transparent"} />
+                    </div>
+                  </div>
+                  <div style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'var(--primary)', color: 'white', fontSize: '0.6rem', fontWeight: 900, padding: '2px 5px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
+                    {achievements.stars}/10
+                  </div>
+                </div>
+                <div className="flex-col" style={{ alignItems: 'flex-start', gap: '0' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 900 }}>ESTRELA</span>
+                  <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>{10 - achievements.stars} faltam</span>
+                </div>
               </div>
-              <div className="flex-row flex-center" style={{ gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '0.75rem' }}>
-                <NotebookPen size={20} color="#ec4899" />
-                <span style={{ fontSize: '1rem', fontWeight: 800 }}>{achievements.notebooks}</span>
+
+              <div className="flex-row flex-center" style={{ gap: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem', borderRadius: '1rem', flex: 1 }}>
+                <div style={{ position: 'relative', width: '50px', height: '50px' }}>
+                  <div style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: '50%', 
+                    background: `conic-gradient(#ec4899 ${achievements.notebooks * 36}deg, rgba(255,255,255,0.1) 0deg)`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.5s ease'
+                  }}>
+                    <div style={{ width: '80%', height: '80%', borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <NotebookPen size={24} color="#ec4899" fill={achievements.notebooks === 10 ? "#ec4899" : "transparent"} />
+                    </div>
+                  </div>
+                  <div style={{ position: 'absolute', top: '-5px', right: '-5px', background: '#ec4899', color: 'white', fontSize: '0.6rem', fontWeight: 900, padding: '2px 5px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
+                    {achievements.notebooks}/10
+                  </div>
+                </div>
+                <div className="flex-col" style={{ alignItems: 'flex-start', gap: '0' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 900 }}>ESTUDO</span>
+                  <span style={{ fontSize: '0.6rem', opacity: 0.6 }}>{Math.max(0, 10 - achievements.notebooks)} faltam</span>
+                </div>
               </div>
             </div>
           </div>
@@ -872,6 +1016,109 @@ const App: React.FC = () => {
         <p>&copy; {new Date().getFullYear()} Antonio Denilson Canuto</p>
         <p>Versão {packageJson.version}</p>
       </footer>
+
+      {/* Help Modal */}
+      {showHelpModal && (
+        <div className="modal-overlay flex-center" onClick={() => setShowHelpModal(false)}>
+          <div className="glass-panel animate-scale-in" style={{ maxWidth: '350px', padding: '1.5rem' }} onClick={e => e.stopPropagation()}>
+            <div className="flex-row" style={{ marginBottom: '1.5rem' }}>
+              <h2 className="gradient-text" style={{ margin: 0 }}>Como Progredir?</h2>
+              <button className="btn-icon" onClick={() => setShowHelpModal(false)} style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-col" style={{ gap: '1rem', textAlign: 'left' }}>
+              <div className="flex-row" style={{ alignItems: 'flex-start', gap: '0.8rem' }}>
+                <Trophy size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Troféus</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Acerte 10/10 em um teste de tabuada única. Cada número (2-9) vale 1 troféu.</p>
+                </div>
+              </div>
+
+              <div className="flex-row" style={{ alignItems: 'flex-start', gap: '0.8rem' }}>
+                <Star size={20} color="#3b82f6" style={{ flexShrink: 0 }} />
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Estrela Mestra</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Acerte 10/10 em um teste randômico. Cada vitória preenche 1 das 10 partes.</p>
+                </div>
+              </div>
+
+              <div className="flex-row" style={{ alignItems: 'flex-start', gap: '0.8rem' }}>
+                <NotebookPen size={20} color="#ec4899" style={{ flexShrink: 0 }} />
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Caderno de Estudo</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>A cada 10 minutos de estudo, você preenche 1 das 10 partes do caderno.</p>
+                </div>
+              </div>
+
+              <div className="flex-row" style={{ alignItems: 'flex-start', gap: '0.8rem' }}>
+                <HelpCircle size={20} color="var(--accent)" style={{ flexShrink: 0 }} />
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Níveis</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Junte pontos de todas as conquistas para subir de nível até virar um Darth Vader!</p>
+                </div>
+              </div>
+            </div>
+            
+            <button className="btn btn-primary" style={{ marginTop: '1.5rem', width: '100%' }} onClick={() => setShowHelpModal(false)}>
+              Entendido!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Celebration Animation Overlay */}
+      {celebration && (
+        <div className="modal-overlay flex-center no-pointer-events" style={{ background: 'rgba(0,0,0,0.6)', zIndex: 10001 }}>
+          <div className="flex-col flex-center animate-celebrate">
+            {celebration === 'trophy' ? (
+              <>
+                <div className="trophy-glow">
+                  <Trophy size={150} color="#f59e0b" fill="#f59e0b" />
+                </div>
+                <h1 className="gradient-text" style={{ fontSize: '2.5rem', marginTop: '1rem', textAlign: 'center' }}>
+                  TROFÉU DE OURO!
+                </h1>
+                <p style={{ fontWeight: 800, fontSize: '1.2rem' }}>Tabuada dominada!</p>
+              </>
+            ) : celebration === 'star' ? (
+              <>
+                <div className="star-glow">
+                  <Star size={150} color="#3b82f6" fill="#3b82f6" />
+                </div>
+                <h1 className="gradient-text" style={{ fontSize: '2.5rem', marginTop: '1rem', textAlign: 'center' }}>
+                  BRILHO ESTELAR!
+                </h1>
+                <p style={{ fontWeight: 800, fontSize: '1.2rem' }}>Poder matemático aumentado!</p>
+              </>
+            ) : celebration === 'study' ? (
+              <>
+                <div className="study-glow">
+                  <NotebookPen size={150} color="#ec4899" fill="#ec4899" />
+                </div>
+                <h1 className="gradient-text" style={{ fontSize: '2.5rem', marginTop: '1rem', textAlign: 'center' }}>
+                  FOCO TOTAL!
+                </h1>
+                <p style={{ fontWeight: 800, fontSize: '1.2rem' }}>Mais 10 minutos de conhecimento!</p>
+              </>
+            ) : (
+              <>
+                <div className="rank-glow">
+                  <BarChart3 size={150} color="var(--accent)" />
+                </div>
+                <h1 className="gradient-text" style={{ fontSize: '3rem', marginTop: '1rem', textAlign: 'center' }}>
+                  SUBIU DE NÍVEL!
+                </h1>
+                <div style={{ background: 'var(--accent)', color: 'white', padding: '0.5rem 2rem', borderRadius: '2rem', fontSize: '1.5rem', fontWeight: 900, boxShadow: '0 5px 15px rgba(0,0,0,0.3)' }}>
+                  {getRank().toUpperCase()}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
