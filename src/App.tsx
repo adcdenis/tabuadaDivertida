@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, BookOpen, BarChart3, ArrowLeft, Check } from 'lucide-react';
+import { Play, BookOpen, BarChart3, ArrowLeft, Check, Trophy, Star, NotebookPen } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import packageJson from '../package.json';
 
@@ -59,6 +59,7 @@ const App: React.FC = () => {
 
   const [userName, setUserName] = useState('');
   const [tempName, setTempName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
   
   const [showResetPrompt, setShowResetPrompt] = useState(false);
   const [resetInput, setResetInput] = useState('');
@@ -66,6 +67,26 @@ const App: React.FC = () => {
 
   const [theme, setTheme] = useState<'rosa' | 'azul'>('rosa');
   const [tempTheme, setTempTheme] = useState<'rosa' | 'azul'>('rosa');
+
+  // Achievements State
+  const [achievements, setAchievements] = useState({
+    trophies: [] as number[],
+    stars: 0,
+    notebooks: 0,
+    totalStudyTime: 0
+  });
+
+  const getRank = () => {
+    const total = achievements.trophies.length + achievements.stars + achievements.notebooks;
+    if (total >= 205) return 'Darth Vader';
+    if (total >= 180) return 'Jedi';
+    if (total >= 150) return 'Ninja';
+    if (total >= 120) return 'Mestre Supremo';
+    if (total >= 90) return 'Mestre';
+    if (total >= 60) return 'Aprendiz';
+    if (total >= 30) return 'Amador';
+    return 'Iniciante';
+  };
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -108,6 +129,11 @@ const App: React.FC = () => {
     if (saved) setHistory(JSON.parse(saved));
     const savedStudies = localStorage.getItem('tabuada_study_history');
     if (savedStudies) setStudyHistory(JSON.parse(savedStudies));
+
+    const savedAchievements = localStorage.getItem('tabuada_achievements');
+    if (savedAchievements) {
+      setAchievements(JSON.parse(savedAchievements));
+    }
   }, []);
 
   const saveWelcomeData = () => {
@@ -131,6 +157,14 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSaveName = () => {
+    if (tempName.trim()) {
+      setUserName(tempName.trim());
+      localStorage.setItem('tabuada_user_name', tempName.trim());
+    }
+    setIsEditingName(false);
+  };
+
   const handleResetConfirm = () => {
     if (resetInput === 'root') {
       if (resetAction === 'stats') {
@@ -138,6 +172,8 @@ const App: React.FC = () => {
         setStudyHistory([]);
         localStorage.removeItem('tabuada_history');
         localStorage.removeItem('tabuada_study_history');
+        setAchievements({ trophies: [], stars: 0, notebooks: 0, totalStudyTime: 0 });
+        localStorage.removeItem('tabuada_achievements');
       } else if (resetAction === 'user') {
         localStorage.clear();
         setUserName('');
@@ -173,6 +209,17 @@ const App: React.FC = () => {
     const newHistory = [result, ...studyHistory];
     setStudyHistory(newHistory);
     localStorage.setItem('tabuada_study_history', JSON.stringify(newHistory));
+
+    // Update study achievements
+    const newTotalTime = achievements.totalStudyTime + timeSpent;
+    const newNotebooks = Math.min(100, Math.floor(newTotalTime / (10 * 60)));
+    const updatedAchievements = { 
+      ...achievements, 
+      totalStudyTime: newTotalTime,
+      notebooks: newNotebooks
+    };
+    setAchievements(updatedAchievements);
+    localStorage.setItem('tabuada_achievements', JSON.stringify(updatedAchievements));
   };
 
   const toggleStudyTable = (table: number) => {
@@ -304,6 +351,31 @@ const App: React.FC = () => {
       timeSeconds: elapsedTime
     };
     saveResult(result);
+
+    // Update Test Achievements
+    if (finalScore === 10) {
+      let updatedAchievements = { ...achievements };
+      let changed = false;
+
+      if (testTables.length === 1) {
+        const table = testTables[0];
+        if (!achievements.trophies.includes(table) && achievements.trophies.length < 10) {
+          updatedAchievements.trophies = [...achievements.trophies, table];
+          changed = true;
+        }
+      } else if (testTables.length > 1) {
+        if (achievements.stars < 100) {
+          updatedAchievements.stars += 1;
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        setAchievements(updatedAchievements);
+        localStorage.setItem('tabuada_achievements', JSON.stringify(updatedAchievements));
+      }
+    }
+
     setCurrentScreen('test-result');
   };
 
@@ -380,9 +452,84 @@ const App: React.FC = () => {
 
       {currentScreen === 'home' && (
         <div className="glass-panel flex-col flex-center animate-fade-in" style={{ flex: 1 }}>
-          <h1 className="gradient-text">Olá, {userName}!</h1>
+          <img 
+            src="/math-fun.svg" 
+            alt="Ilustração de matemática" 
+            style={{ width: '100%', maxWidth: '280px', marginBottom: '1rem' }}
+          />
+          {isEditingName ? (
+            <div className="flex-row" style={{ width: '100%', maxWidth: '300px' }}>
+              <input 
+                className="input-field"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                autoFocus
+                onBlur={handleSaveName}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                maxLength={20}
+              />
+              <button className="btn btn-primary btn-icon" onClick={handleSaveName}>
+                <Check size={20} />
+              </button>
+            </div>
+          ) : (
+            <h1 
+              className="gradient-text" 
+              onClick={() => { setIsEditingName(true); setTempName(userName); }}
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              title="Clique para mudar seu nome"
+            >
+              Olá, {userName}!
+            </h1>
+          )}
           <p style={{ textAlign: 'center', marginBottom: '2rem' }}>Pronto para aprender e testar seus conhecimentos em matemática?</p>
           
+          {/* Ranking System */}
+          <div className="glass-panel" style={{ width: '100%', marginBottom: '1.5rem', padding: '1rem' }}>
+            <div className="flex-row" style={{ marginBottom: '0.5rem' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--accent)' }}>NÍVEL: {getRank().toUpperCase()}</span>
+              <span style={{ fontSize: '0.8rem', opacity: 0.8 }}>{achievements.trophies.length + achievements.stars + achievements.notebooks} pts</span>
+            </div>
+            {/* Trophies Collection */}
+            <div className="flex-col" style={{ gap: '0.5rem', marginBottom: '1rem' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 800, opacity: 0.6, textAlign: 'left' }}>COLEÇÃO DE TROFÉUS</span>
+              <div className="grid-cols-4" style={{ gap: '0.4rem' }}>
+                {[2, 3, 4, 5, 6, 7, 8, 9].map(t => {
+                  const hasTrophy = achievements.trophies.includes(t);
+                  return (
+                    <div 
+                      key={t} 
+                      className="flex-col flex-center" 
+                      style={{ 
+                        padding: '0.4rem', 
+                        background: hasTrophy ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255,255,255,0.05)', 
+                        borderRadius: '0.5rem',
+                        opacity: hasTrophy ? 1 : 0.3,
+                        border: hasTrophy ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid transparent',
+                        transition: 'all 0.3s ease'
+                      }}
+                      title={hasTrophy ? `Tabuada do ${t} dominada!` : `Tabuada do ${t} ainda não concluída`}
+                    >
+                      <Trophy size={16} color={hasTrophy ? "#f59e0b" : "#cbd5e1"} />
+                      <span style={{ fontSize: '0.7rem', fontWeight: 900 }}>{t}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid-cols-2" style={{ gap: '0.5rem' }}>
+              <div className="flex-row flex-center" style={{ gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '0.75rem' }}>
+                <Star size={20} color="#3b82f6" />
+                <span style={{ fontSize: '1rem', fontWeight: 800 }}>{achievements.stars}</span>
+              </div>
+              <div className="flex-row flex-center" style={{ gap: '0.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.5rem', borderRadius: '0.75rem' }}>
+                <NotebookPen size={20} color="#ec4899" />
+                <span style={{ fontSize: '1rem', fontWeight: 800 }}>{achievements.notebooks}</span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex-col" style={{ width: '100%', maxWidth: '300px' }}>
             <button className="btn btn-primary" onClick={() => setCurrentScreen('study-config')}>
               <BookOpen size={24} /> Estudar
