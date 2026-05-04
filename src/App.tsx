@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, BookOpen, BarChart3, ArrowLeft, RefreshCw, Check, X, RotateCcw } from 'lucide-react';
+import { Play, BookOpen, BarChart3, ArrowLeft, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 type Screen = 'welcome' | 'home' | 'study-config' | 'study' | 'test-config' | 'test' | 'test-result' | 'stats';
@@ -57,9 +57,7 @@ const App: React.FC = () => {
   const [statsTab, setStatsTab] = useState<'tests' | 'studies'>('tests');
 
   const [userName, setUserName] = useState('');
-  const [resetPassword, setResetPassword] = useState('');
   const [tempName, setTempName] = useState('');
-  const [tempPassword, setTempPassword] = useState('');
   
   const [showResetPrompt, setShowResetPrompt] = useState(false);
   const [resetInput, setResetInput] = useState('');
@@ -101,7 +99,6 @@ const App: React.FC = () => {
 
     if (savedName && savedPassword) {
       setUserName(savedName);
-      setResetPassword(savedPassword);
     } else {
       setCurrentScreen('welcome');
     }
@@ -118,7 +115,6 @@ const App: React.FC = () => {
     localStorage.setItem('tabuada_reset_password', 'root');
     localStorage.setItem('tabuada_theme', tempTheme);
     setUserName(tempName.trim());
-    setResetPassword('root');
     setTheme(tempTheme);
     setCurrentScreen('home');
   };
