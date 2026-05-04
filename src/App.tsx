@@ -200,6 +200,7 @@ const App: React.FC = () => {
   };
 
   const nextStudyCard = () => {
+    if (!isFlipped) return;
     setIsFlipped(false);
     setTimeout(() => {
       if (studyIndex < studyQuestions.length - 1) {
@@ -219,27 +220,33 @@ const App: React.FC = () => {
 
   const startTest = () => {
     if (testTables.length === 0) return;
-    const questions: TestQuestion[] = [];
-    for (let i = 0; i < 10; i++) {
-      const t = testTables[Math.floor(Math.random() * testTables.length)];
-      const m = Math.floor(Math.random() * 10) + 1;
-      const ans = t * m;
-      
-      const options = new Set<number>([ans]);
-      while(options.size < 4) {
-        // Generate plausible wrong options
+    
+    // Generate all possible combinations from selected tables
+    const allPossible: Question[] = [];
+    testTables.forEach(t => {
+      for (let m = 1; m <= 10; m++) {
+        allPossible.push({ table: t, multiplier: m, answer: t * m });
+      }
+    });
+
+    // Shuffle and pick 10
+    const shuffled = allPossible.sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, 10);
+
+    const questions: TestQuestion[] = selected.map(q => {
+      const options = new Set<number>([q.answer]);
+      while (options.size < 4) {
+        // Generate plausible wrong options from the same tables
         const wrongT = testTables[Math.floor(Math.random() * testTables.length)];
         const wrongM = Math.floor(Math.random() * 10) + 1;
         options.add(wrongT * wrongM);
       }
-      
-      questions.push({
-        table: t,
-        multiplier: m,
-        answer: ans,
+      return {
+        ...q,
         options: Array.from(options).sort(() => Math.random() - 0.5)
-      });
-    }
+      };
+    });
+
     setTestQuestions(questions);
     setTestIndex(0);
     setTestScore(0);
@@ -464,7 +471,12 @@ const App: React.FC = () => {
 
           <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>Toque no cartão para ver a resposta</p>
 
-          <button className="btn btn-primary" style={{ marginTop: '1rem', width: '100%' }} onClick={nextStudyCard}>
+          <button 
+            className="btn btn-primary" 
+            style={{ marginTop: '1rem', width: '100%' }} 
+            onClick={nextStudyCard}
+            disabled={!isFlipped}
+          >
             {studyIndex < studyQuestions.length - 1 ? 'Próximo' : 'Finalizar Estudo'}
           </button>
         </div>
