@@ -518,7 +518,7 @@ const App: React.FC = () => {
           <img 
             src="/math-fun.svg" 
             alt="Ilustração de matemática" 
-            style={{ width: '100%', maxWidth: '280px', marginBottom: '1rem' }}
+            style={{ width: '100%', maxWidth: '160px', marginBottom: '1rem' }}
           />
           {isEditingName ? (
             <div className="flex-row" style={{ width: '100%', maxWidth: '300px' }}>
