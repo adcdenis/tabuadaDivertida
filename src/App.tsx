@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Play, BookOpen, BarChart3, ArrowLeft, Check, Trophy, Star, NotebookPen, HelpCircle, X, Sun, Moon } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, BookOpen, BarChart3, ArrowLeft, Check, Trophy, Star, NotebookPen, HelpCircle, X, Sun, Moon, Notebook } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import packageJson from '../package.json';
 
@@ -56,6 +56,8 @@ const App: React.FC = () => {
   const [studyElapsedTime, setStudyElapsedTime] = useState(0);
   const [studyHistory, setStudyHistory] = useState<StudyResult[]>([]);
   const [statsTab, setStatsTab] = useState<'tests' | 'studies'>('tests');
+  const studyInactivityRef = useRef(0);
+  const [isStudyPaused, setIsStudyPaused] = useState(false);
 
   const [userName, setUserName] = useState('');
   const [tempName, setTempName] = useState('');
@@ -77,17 +79,12 @@ const App: React.FC = () => {
   });
 
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [celebration, setCelebration] = useState<'trophy' | 'star' | 'study' | 'rank' | null>(null);
+  const [celebration, setCelebration] = useState<'trophy' | 'star' | 'study' | 'rank' | 'study-complete' | null>(null);
 
   const RANKS = [
     { name: 'Iniciante', min: 0 },
-    { name: 'Amador', min: 5 },
-    { name: 'Aprendiz', min: 10 },
-    { name: 'Mestre', min: 14 },
-    { name: 'Mestre Supremo', min: 18 },
-    { name: 'Ninja', min: 22 },
-    { name: 'Jedi', min: 26 },
-    { name: 'Darth Vader', min: 29 }
+    { name: 'Intermediário', min: 12 },
+    { name: 'Avançado', min: 25 }
   ];
 
   const getRank = (pts?: number) => {
@@ -104,7 +101,12 @@ const App: React.FC = () => {
       }, 1000);
     } else if (currentScreen === 'study') {
       interval = setInterval(() => {
-        setStudyElapsedTime(prev => prev + 1);
+        if (studyInactivityRef.current < 30) {
+          setStudyElapsedTime(prev => prev + 1);
+          studyInactivityRef.current += 1;
+        } else {
+          setIsStudyPaused(true);
+        }
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -238,6 +240,16 @@ const App: React.FC = () => {
     } else if (newNotebooks > achievements.notebooks) {
       setCelebration('study');
       setTimeout(() => setCelebration(null), 3000);
+    } else {
+      // General study completion celebration
+      setCelebration('study-complete');
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#ec4899', '#8b5cf6', '#ffffff']
+      });
+      setTimeout(() => setCelebration(null), 3000);
     }
   };
 
@@ -262,6 +274,8 @@ const App: React.FC = () => {
     setStudyIndex(0);
     setStudyElapsedTime(0);
     setIsFlipped(false);
+    studyInactivityRef.current = 0;
+    setIsStudyPaused(false);
     setCurrentScreen('study');
   };
 
@@ -754,7 +768,21 @@ const App: React.FC = () => {
           </div>
           <p>Cartão {studyIndex + 1} de {studyQuestions.length}</p>
 
-          <div className={`study-card ${isFlipped ? 'flipped' : ''}`} onClick={() => setIsFlipped(!isFlipped)} style={{ marginTop: '2rem', marginBottom: '2rem' }}>
+          <div 
+            className={`study-card ${isFlipped ? 'flipped' : ''} ${isStudyPaused ? 'study-paused' : ''}`} 
+            onClick={() => {
+              studyInactivityRef.current = 0;
+              setIsStudyPaused(false);
+              if (isStudyPaused) return; // First click only resumes
+              
+              if (!isFlipped) {
+                setIsFlipped(true);
+              } else {
+                nextStudyCard();
+              }
+            }} 
+            style={{ marginTop: '2rem', marginBottom: '2rem', position: 'relative' }}
+          >
             <div className="study-card-inner">
               <div className="study-card-front">
                 {studyQuestions[studyIndex].table} x {studyQuestions[studyIndex].multiplier}
@@ -763,18 +791,18 @@ const App: React.FC = () => {
                 {studyQuestions[studyIndex].answer}
               </div>
             </div>
+            {isStudyPaused && (
+              <div className="pause-overlay flex-center flex-col">
+                <Play size={48} color="white" />
+                <span style={{ fontWeight: 900, marginTop: '1rem' }}>PAUSADO POR INATIVIDADE</span>
+                <span style={{ fontSize: '0.8rem' }}>Toque para continuar</span>
+              </div>
+            )}
           </div>
 
-          <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>Toque no cartão para ver a resposta</p>
-
-          <button 
-            className="btn btn-primary" 
-            style={{ marginTop: '1rem', width: '100%' }} 
-            onClick={nextStudyCard}
-            disabled={!isFlipped}
-          >
-            {studyIndex < studyQuestions.length - 1 ? 'Próximo' : 'Finalizar Estudo'}
-          </button>
+          <p style={{ fontSize: '0.875rem', opacity: 0.7 }}>
+            {isFlipped ? 'Toque no cartão para a próxima' : 'Toque no cartão para ver a resposta'}
+          </p>
 
           <button className="btn btn-secondary" style={{ marginTop: '1rem', width: '100%' }} onClick={handleBack}>
             <ArrowLeft size={20} /> Sair do Estudo
@@ -1123,6 +1151,16 @@ const App: React.FC = () => {
                   FOCO TOTAL!
                 </h1>
                 <p style={{ fontWeight: 800, fontSize: '1.2rem' }}>Mais 10 minutos de conhecimento!</p>
+              </>
+            ) : celebration === 'study-complete' ? (
+              <>
+                <div className="study-glow" style={{ color: '#10b981' }}>
+                  <Notebook size={150} color="#10b981" fill="#10b981" />
+                </div>
+                <h1 className="gradient-text" style={{ fontSize: '2.5rem', marginTop: '1rem', textAlign: 'center' }}>
+                  ESTUDO CONCLUÍDO!
+                </h1>
+                <p style={{ fontWeight: 800, fontSize: '1.2rem' }}>Você está ficando mais inteligente!</p>
               </>
             ) : (
               <>
