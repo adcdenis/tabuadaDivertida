@@ -79,6 +79,7 @@ const App: React.FC = () => {
   });
 
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [achievementHint, setAchievementHint] = useState<'star' | 'notebook' | null>(null);
   const [celebration, setCelebration] = useState<'trophy' | 'star' | 'study' | 'rank' | 'study-complete' | null>(null);
 
   const RANKS = [
@@ -651,7 +652,11 @@ const App: React.FC = () => {
             </div>
 
             <div className="grid-cols-2" style={{ gap: '0.8rem' }}>
-              <div className="flex-row flex-center" style={{ gap: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem', borderRadius: '1rem', flex: 1 }}>
+              <div 
+                className="flex-row flex-center" 
+                style={{ gap: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem', borderRadius: '1rem', flex: 1, cursor: 'pointer' }}
+                onClick={() => setAchievementHint('star')}
+              >
                 <div style={{ position: 'relative', width: '50px', height: '50px' }}>
                   <div style={{ 
                     width: '100%', 
@@ -677,7 +682,11 @@ const App: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-row flex-center" style={{ gap: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem', borderRadius: '1rem', flex: 1 }}>
+              <div 
+                className="flex-row flex-center" 
+                style={{ gap: '0.8rem', background: 'rgba(255,255,255,0.05)', padding: '0.6rem', borderRadius: '1rem', flex: 1, cursor: 'pointer' }}
+                onClick={() => setAchievementHint('notebook')}
+              >
                 <div style={{ position: 'relative', width: '50px', height: '50px' }}>
                   <div style={{ 
                     width: '100%', 
@@ -1082,7 +1091,7 @@ const App: React.FC = () => {
                 <Trophy size={20} color="#f59e0b" style={{ flexShrink: 0 }} />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Troféus</h4>
-                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Acerte 10/10 em um teste de tabuada única. Cada número (2-9) vale 1 troféu.</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Acerte 10/10 em um teste de tabuada única. Cada número (1-10) vale 1 troféu.</p>
                 </div>
               </div>
 
@@ -1098,7 +1107,7 @@ const App: React.FC = () => {
                 <NotebookPen size={20} color="#ec4899" style={{ flexShrink: 0 }} />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Caderno de Estudo</h4>
-                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>A cada 10 minutos de estudo, você preenche 1 das 10 partes do caderno.</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>A cada 10 min de estudo, ganhe 1 pt. O tempo pausa após 30s sem ação.</p>
                 </div>
               </div>
 
@@ -1106,7 +1115,7 @@ const App: React.FC = () => {
                 <HelpCircle size={20} color="var(--accent)" style={{ flexShrink: 0 }} />
                 <div>
                   <h4 style={{ margin: 0, fontSize: '0.9rem' }}>Níveis</h4>
-                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Junte pontos de todas as conquistas para subir de nível até virar um Darth Vader!</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>Junte pontos para subir de nível: Iniciante, Intermediário e Avançado!</p>
                 </div>
               </div>
             </div>
@@ -1114,6 +1123,40 @@ const App: React.FC = () => {
             <button className="btn btn-primary" style={{ marginTop: '1.5rem', width: '100%' }} onClick={() => setShowHelpModal(false)}>
               Entendido!
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Achievement Hint Modal */}
+      {achievementHint && (
+        <div className="modal-overlay flex-center" onClick={() => setAchievementHint(null)}>
+          <div className="glass-panel animate-scale-in" style={{ maxWidth: '300px', padding: '1.5rem', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <div className="flex-col flex-center" style={{ gap: '1rem' }}>
+              {achievementHint === 'star' ? (
+                <>
+                  <div className="star-glow">
+                    <Star size={48} color="#3b82f6" fill="#3b82f6" />
+                  </div>
+                  <h3 style={{ margin: 0, color: '#3b82f6' }}>Estrela Mestra</h3>
+                  <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                    Ganhe estrelas acertando <strong>10/10</strong> em testes com <strong>várias tabuadas</strong> selecionadas ao mesmo tempo!
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="study-glow">
+                    <NotebookPen size={48} color="#ec4899" fill="#ec4899" />
+                  </div>
+                  <h3 style={{ margin: 0, color: '#ec4899' }}>Caderno de Estudo</h3>
+                  <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
+                    Ganhe partes do caderno acumulando <strong>tempo de estudo</strong>. Cada <strong>10 minutos</strong> ativos valem 1 ponto!
+                  </p>
+                </>
+              )}
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: '0.5rem' }} onClick={() => setAchievementHint(null)}>
+                Entendi!
+              </button>
+            </div>
           </div>
         </div>
       )}
