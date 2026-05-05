@@ -123,7 +123,6 @@ const App: React.FC = () => {
   const [testScore, setTestScore] = useState(0);
   const [testErrors, setTestErrors] = useState<TestResult['errors']>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [history, setHistory] = useState<TestResult[]>([]);
   const [studyElapsedTime, setStudyElapsedTime] = useState(0);
@@ -471,7 +470,6 @@ const App: React.FC = () => {
     setStudyElapsedTime(0);
     setIsFlipped(false);
     setSelectedAnswer(null);
-    setIsAnswerCorrect(null);
     setCurrentScreen('study');
   };
 
@@ -512,7 +510,6 @@ const App: React.FC = () => {
     setTestErrors([]);
     setElapsedTime(0);
     setSelectedAnswer(null);
-    setIsAnswerCorrect(null);
     setCurrentScreen('test');
   };
 
@@ -521,7 +518,6 @@ const App: React.FC = () => {
     const currentQ = testQuestions[testIndex];
     const correct = selected === currentQ.answer;
     setSelectedAnswer(selected);
-    setIsAnswerCorrect(correct);
     if (correct) {
       setTestScore(s => s + 1);
       addXP(10);
@@ -540,11 +536,9 @@ const App: React.FC = () => {
       if (testIndex < 9) {
         setTestIndex(testIndex + 1);
         setSelectedAnswer(null);
-        setIsAnswerCorrect(null);
       } else {
         finishTest(correct ? testScore + 1 : testScore);
         setSelectedAnswer(null);
-        setIsAnswerCorrect(null);
       }
     }, 1200);
   };
