@@ -625,7 +625,7 @@ const App: React.FC = () => {
             <div className="flex-col" style={{ gap: '0.3rem', marginBottom: '1.2rem' }}>
               <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5, textAlign: 'left' }}>TROFÉUS CONQUISTADOS</span>
               <div className="flex-row" style={{ gap: '0.25rem', width: '100%' }}>
-                {[2, 3, 4, 5, 6, 7, 8, 9].map(t => {
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(t => {
                   const hasTrophy = achievements.trophies.includes(t);
                   return (
                     <div 
@@ -713,7 +713,7 @@ const App: React.FC = () => {
           <div className="flex-col">
             <p>Escolha quais tabuadas estudar:</p>
             <div className="grid-cols-4">
-              {[2,3,4,5,6,7,8,9].map(n => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                 <button 
                   key={n}
                   className={`btn table-selector-btn ${studyTables.includes(n) ? 'btn-primary' : 'btn-secondary'}`}
@@ -816,7 +816,7 @@ const App: React.FC = () => {
           <div className="flex-col">
             <p>Selecione as tabuadas para o teste:</p>
             <div className="grid-cols-4">
-              {[2,3,4,5,6,7,8,9].map(n => (
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
                 <button 
                   key={n}
                   className={`btn table-selector-btn ${testTables.includes(n) ? 'btn-primary' : 'btn-secondary'}`}
