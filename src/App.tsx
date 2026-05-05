@@ -569,9 +569,6 @@ const App: React.FC = () => {
             <button className="btn btn-primary" onClick={() => setCurrentScreen('test-config')}>
               <Play size={24} /> Teste
             </button>
-            <button className="btn btn-secondary" onClick={() => setCurrentScreen('stats')}>
-              <BarChart3 size={24} /> Estatísticas
-            </button>
           </div>
           
           {/* Ranking System moved to bottom */}
@@ -713,6 +710,9 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
+          <button className="btn btn-secondary" onClick={() => setCurrentScreen('stats')} style={{ width: '100%', maxWidth: '300px' }}>
+            <BarChart3 size={24} /> Estatísticas
+          </button>
         </div>
       )}
 
