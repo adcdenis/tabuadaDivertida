@@ -144,9 +144,12 @@ const App: React.FC = () => {
   });
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [achievementHint, setAchievementHint] = useState<'star' | 'notebook' | null>(null);
-  const [celebration, setCelebration] = useState<'trophy' | 'star' | 'study' | 'rank' | 'study-complete' | 'levelup' | 'mission' | null>(null);
+  type CelebrationType = 'trophy' | 'star' | 'study' | 'rank' | 'study-complete' | 'levelup' | 'mission';
+  const [celebration, setCelebration] = useState<CelebrationType | null>(null);
+  const [celebrationQueue, setCelebrationQueue] = useState<{ type: CelebrationType; confetti?: () => void }[]>([]);
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [xpPopup, setXpPopup] = useState<number | null>(null);
+  const [showLevelInfo, setShowLevelInfo] = useState(false);
 
   // Game state
   const [gameState, setGameState] = useState<GameState>({
@@ -156,6 +159,24 @@ const App: React.FC = () => {
     dailyMission: null,
     todayActive: false,
   });
+
+  const triggerCelebration = (type: CelebrationType, confettiAction?: () => void) => {
+    setCelebrationQueue(prev => [...prev, { type, confettiAction }]);
+  };
+
+  useEffect(() => {
+    if (celebrationQueue.length > 0 && !celebration) {
+      const next = celebrationQueue[0];
+      setCelebration(next.type);
+      if (next.confetti) next.confetti();
+      
+      setCelebrationQueue(prev => prev.slice(1));
+      
+      setTimeout(() => {
+        setCelebration(null);
+      }, 3500);
+    }
+  }, [celebrationQueue, celebration]);
 
 
   useEffect(() => {
@@ -312,14 +333,14 @@ const App: React.FC = () => {
       // Level up celebration
       if (newLevel.level > oldLevel.level) {
         setTimeout(() => {
-          setCelebration('levelup');
-          confetti({
-            particleCount: 200,
-            spread: 160,
-            origin: { y: 0.5 },
-            colors: ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
+          triggerCelebration('levelup', () => {
+            confetti({
+              particleCount: 200,
+              spread: 160,
+              origin: { y: 0.5 },
+              colors: ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
+            });
           });
-          setTimeout(() => setCelebration(null), 3500);
         }, 300);
       }
 
@@ -343,9 +364,9 @@ const App: React.FC = () => {
       if (completed && !mission.completed) {
         setTimeout(() => {
           addXP(100);
-          setCelebration('mission');
-          confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#fbbf24', '#ffffff'] });
-          setTimeout(() => setCelebration(null), 3000);
+          triggerCelebration('mission', () => {
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#fbbf24', '#ffffff'] });
+          });
         }, 500);
       }
 
@@ -442,17 +463,16 @@ const App: React.FC = () => {
     updateMissionProgress('estudar_tempo', timeSpent);
 
     if (newNotebooks > achievements.notebooks) {
-      setCelebration('study');
-      setTimeout(() => setCelebration(null), 3000);
+      triggerCelebration('study');
     } else {
-      setCelebration('study-complete');
-      confetti({
-        particleCount: 150,
-        spread: 100,
-        origin: { y: 0.6 },
-        colors: ['#ec4899', '#8b5cf6', '#ffffff']
+      triggerCelebration('study-complete', () => {
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#ec4899', '#8b5cf6', '#ffffff']
+        });
       });
-      setTimeout(() => setCelebration(null), 3000);
     }
   };
 
@@ -588,27 +608,32 @@ const App: React.FC = () => {
         const table = testTables[0];
         if (!achievements.trophies.includes(table)) {
           updatedAchievements.trophies = [...achievements.trophies, table];
-          setCelebration('trophy');
-          setTimeout(() => setCelebration(null), 3000);
+          triggerCelebration('trophy', () => {
+            confetti({
+              particleCount: 150,
+              spread: 100,
+              origin: { y: 0.6 },
+              colors: ['#f59e0b', '#fbbf24', '#ffffff']
+            });
+          });
         }
       } else if (testTables.length > 1) {
-        const duration = 2 * 1000;
-        const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
-        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
-
-        const interval: any = setInterval(function() {
-          const timeLeft = animationEnd - Date.now();
-          if (timeLeft <= 0) return clearInterval(interval);
-          const particleCount = 50 * (timeLeft / duration);
-          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
-
         if (achievements.stars < 10) {
           updatedAchievements.stars += 1;
-          setCelebration('star');
-          setTimeout(() => setCelebration(null), 3000);
+          triggerCelebration('star', () => {
+            const duration = 2 * 1000;
+            const animationEnd = Date.now() + duration;
+            const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 10000 };
+            const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+            const interval: any = setInterval(function() {
+              const timeLeft = animationEnd - Date.now();
+              if (timeLeft <= 0) return clearInterval(interval);
+              const particleCount = 50 * (timeLeft / duration);
+              confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+              confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+            }, 250);
+          });
         }
       }
     }
@@ -758,7 +783,7 @@ const App: React.FC = () => {
               )}
 
               {/* XP Bar */}
-              <div className="xp-bar-container" style={{ maxWidth: '300px' }}>
+              <div className="xp-bar-container" style={{ maxWidth: '300px', cursor: 'pointer' }} onClick={() => setShowLevelInfo(true)}>
                 <div className="xp-bar-header">
                   <div className="xp-level-badge">
                     <Zap size={12} /> Nv. {getLevel(gameState.xp).level} — {getLevel(gameState.xp).name}
@@ -1114,7 +1139,7 @@ const App: React.FC = () => {
                 border: '1px solid rgba(139, 92, 246, 0.15)'
               }}>
                 <div className="flex-row" style={{ marginBottom: '0.4rem' }}>
-                  <div className="xp-level-badge" style={{ fontSize: '0.7rem' }}>
+                  <div className="xp-level-badge" style={{ fontSize: '0.7rem', cursor: 'pointer' }} onClick={() => setShowLevelInfo(true)}>
                     <Zap size={11} /> Nv. {getLevel(gameState.xp).level} — {getLevel(gameState.xp).name}
                   </div>
                   <div className="flex-row" style={{ gap: '0.5rem' }}>
@@ -1431,9 +1456,63 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Level Info Modal */}
+      {showLevelInfo && (
+        <div className="modal-overlay flex-center" onClick={() => setShowLevelInfo(false)}>
+          <div className="glass-panel animate-scale-in" style={{ maxWidth: '350px', padding: '1.5rem', maxHeight: '85vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <div className="flex-row" style={{ marginBottom: '1.5rem' }}>
+              <h2 className="gradient-text" style={{ margin: 0 }}>Níveis e XP</h2>
+              <button className="btn-icon" onClick={() => setShowLevelInfo(false)} style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-col" style={{ gap: '0.8rem' }}>
+              {LEVELS.map(l => {
+                const isReached = gameState.xp >= l.minXp;
+                const isCurrent = getLevel(gameState.xp).level === l.level;
+                
+                return (
+                  <div 
+                    key={l.level} 
+                    className={`history-item flex-row ${isCurrent ? 'active' : ''}`}
+                    style={{ 
+                      padding: '0.8rem', 
+                      background: isCurrent ? 'rgba(139, 92, 246, 0.15)' : isReached ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.01)',
+                      border: isCurrent ? '1px solid var(--primary)' : '1px solid rgba(255,255,255,0.05)',
+                      opacity: isReached ? 1 : 0.5
+                    }}
+                  >
+                    <div className="flex-col" style={{ gap: '0.1rem', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: isReached ? 'var(--accent)' : 'inherit' }}>
+                        NÍVEL {l.level}
+                      </span>
+                      <span style={{ fontSize: '1rem', fontWeight: 900 }}>{l.name}</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="score-badge" style={{ 
+                        background: isReached ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.05)',
+                        color: isReached ? 'var(--success)' : 'inherit'
+                      }}>
+                        {l.minXp} XP
+                      </div>
+                      {isCurrent && <span style={{ fontSize: '0.55rem', display: 'block', marginTop: '0.2rem', fontWeight: 800, color: 'var(--primary)' }}>NÍVEL ATUAL</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button className="btn btn-primary" style={{ marginTop: '1.5rem', width: '100%' }} onClick={() => setShowLevelInfo(false)}>
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Celebration Animation Overlay */}
       {celebration && (
-        <div className="modal-overlay flex-center no-pointer-events" style={{ background: 'rgba(0,0,0,0.6)', zIndex: 10001 }}>
+        <div className="modal-overlay flex-center" style={{ background: 'rgba(0,0,0,0.6)', zIndex: 10001 }}>
           <div className="flex-col flex-center animate-celebrate">
             {celebration === 'trophy' ? (
               <>
