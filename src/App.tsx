@@ -277,75 +277,81 @@ const App: React.FC = () => {
 
   // --- XP & Level Functions ---
   const addXP = (amount: number) => {
-    const oldXp = gameState.xp;
-    const newXp = oldXp + amount;
-    const oldLevel = getLevel(oldXp);
-    const newLevel = getLevel(newXp);
-
     // Show XP popup
     setXpPopup(amount);
     setTimeout(() => setXpPopup(null), 1200);
 
-    // Mark today as active & update streak
-    const today = getToday();
-    let newStreak = gameState.streak;
-    if (!gameState.todayActive) {
-      if (gameState.lastActiveDate !== today) {
-        const lastDate = new Date(gameState.lastActiveDate);
-        const todayDate = new Date(today);
-        const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-        newStreak = diffDays === 1 ? gameState.streak + 1 : 1;
-      } else {
-        newStreak = Math.max(1, gameState.streak);
+    setGameState(prev => {
+      const oldXp = prev.xp;
+      const newXp = oldXp + amount;
+      const oldLevel = getLevel(oldXp);
+      const newLevel = getLevel(newXp);
+
+      // Mark today as active & update streak
+      const today = getToday();
+      let newStreak = prev.streak;
+      if (!prev.todayActive) {
+        if (prev.lastActiveDate !== today) {
+          const lastDate = new Date(prev.lastActiveDate);
+          const todayDate = new Date(today);
+          const diffDays = prev.lastActiveDate ? Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
+          newStreak = diffDays === 1 ? prev.streak + 1 : 1;
+        } else {
+          newStreak = Math.max(1, prev.streak);
+        }
       }
-    }
 
-    const updatedGs: GameState = {
-      ...gameState,
-      xp: newXp,
-      streak: newStreak,
-      lastActiveDate: today,
-      todayActive: true,
-    };
-    setGameState(updatedGs);
-    localStorage.setItem('tabuada_game_state', JSON.stringify(updatedGs));
+      const updatedGs: GameState = {
+        ...prev,
+        xp: newXp,
+        streak: newStreak,
+        lastActiveDate: today,
+        todayActive: true,
+      };
 
-    // Level up celebration
-    if (newLevel.level > oldLevel.level) {
-      setTimeout(() => {
-        setCelebration('levelup');
-        confetti({
-          particleCount: 200,
-          spread: 160,
-          origin: { y: 0.5 },
-          colors: ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
-        });
-        setTimeout(() => setCelebration(null), 3500);
-      }, 300);
-    }
+      // Level up celebration
+      if (newLevel.level > oldLevel.level) {
+        setTimeout(() => {
+          setCelebration('levelup');
+          confetti({
+            particleCount: 200,
+            spread: 160,
+            origin: { y: 0.5 },
+            colors: ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
+          });
+          setTimeout(() => setCelebration(null), 3500);
+        }, 300);
+      }
+
+      localStorage.setItem('tabuada_game_state', JSON.stringify(updatedGs));
+      return updatedGs;
+    });
   };
 
   const updateMissionProgress = (type: DailyMission['type'], amount: number, param?: number) => {
-    const mission = gameState.dailyMission;
-    if (!mission || mission.completed || mission.type !== type) return;
-    if (type === 'acertar_tabuada' && param !== mission.param) return;
+    setGameState(prev => {
+      const mission = prev.dailyMission;
+      if (!mission || mission.completed || mission.type !== type) return prev;
+      if (type === 'acertar_tabuada' && param !== mission.param) return prev;
 
-    const newProgress = Math.min(mission.target, mission.progress + amount);
-    const completed = newProgress >= mission.target;
+      const newProgress = Math.min(mission.target, mission.progress + amount);
+      const completed = newProgress >= mission.target;
 
-    const updatedMission: DailyMission = { ...mission, progress: newProgress, completed };
-    const updatedGs: GameState = { ...gameState, dailyMission: updatedMission };
-    setGameState(updatedGs);
-    localStorage.setItem('tabuada_game_state', JSON.stringify(updatedGs));
+      const updatedMission: DailyMission = { ...mission, progress: newProgress, completed };
+      const updatedGs: GameState = { ...prev, dailyMission: updatedMission };
 
-    if (completed && !mission.completed) {
-      setTimeout(() => {
-        addXP(100);
-        setCelebration('mission');
-        confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#fbbf24', '#ffffff'] });
-        setTimeout(() => setCelebration(null), 3000);
-      }, 500);
-    }
+      if (completed && !mission.completed) {
+        setTimeout(() => {
+          addXP(100);
+          setCelebration('mission');
+          confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#fbbf24', '#ffffff'] });
+          setTimeout(() => setCelebration(null), 3000);
+        }, 500);
+      }
+
+      localStorage.setItem('tabuada_game_state', JSON.stringify(updatedGs));
+      return updatedGs;
+    });
   };
 
   const handleResetConfirm = () => {
