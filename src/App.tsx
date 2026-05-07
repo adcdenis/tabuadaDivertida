@@ -67,6 +67,8 @@ const App: React.FC = () => {
     if (saved) try { return JSON.parse(saved); } catch {}
     return { trophies: [], stars: 0, notebooks: 0, totalStudyTime: 0 };
   });
+  const achievementsRef = useRef(achievements);
+  useEffect(() => { achievementsRef.current = achievements; }, [achievements]);
 
   const [gameState, setGameState] = useState<GameState>(() => {
     const saved = localStorage.getItem('tabuada_game_state');
@@ -344,6 +346,10 @@ const App: React.FC = () => {
   };
 
   const finishTest = (finalScore: number) => {
+    // Use ref to read the freshest achievements state, avoiding stale closure issues
+    // (answerTest triggers addXP which re-renders the component before this setTimeout fires)
+    const currentAch = achievementsRef.current;
+
     const result: TestResult = {
       date: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
       score: finalScore,
@@ -355,13 +361,13 @@ const App: React.FC = () => {
     saveResult(result);
 
     const table = testTables[0];
-    const isNewTrophy = finalScore === 10 && testTables.length === 1 && !achievements.trophies.includes(table);
-    const isNewStar = finalScore === 10 && testTables.length > 1 && achievements.stars < 10;
+    const isNewTrophy = finalScore === 10 && testTables.length === 1 && !currentAch.trophies.includes(table);
+    const isNewStar = finalScore === 10 && testTables.length > 1 && currentAch.stars < 10;
 
     setAchievements(prev => {
       const newTotalTime = prev.totalStudyTime + elapsedTime;
       const newNotebooks = Math.min(10, Math.floor(newTotalTime / (NOTEBOOK_MINUTES * 60)));
-      let updated = { ...prev, totalStudyTime: newTotalTime, notebooks: newNotebooks };
+      const updated = { ...prev, totalStudyTime: newTotalTime, notebooks: newNotebooks };
 
       if (finalScore === 10) {
         if (testTables.length === 1) {
