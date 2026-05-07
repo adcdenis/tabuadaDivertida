@@ -49,17 +49,42 @@ const App: React.FC = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
 
   // Persistent state
-  const [history, setHistory] = useState<TestResult[]>([]);
-  const [studyHistory, setStudyHistory] = useState<StudyResult[]>([]);
-  const [userName, setUserName] = useState('');
+  const [history, setHistory] = useState<TestResult[]>(() => {
+    const saved = localStorage.getItem('tabuada_history');
+    if (saved) try { return JSON.parse(saved); } catch {}
+    return [];
+  });
+  const [studyHistory, setStudyHistory] = useState<StudyResult[]>(() => {
+    const saved = localStorage.getItem('tabuada_study_history');
+    if (saved) try { return JSON.parse(saved); } catch {}
+    return [];
+  });
+  const [userName, setUserName] = useState(() => localStorage.getItem('tabuada_user_name') || '');
   const [tempName, setTempName] = useState('');
-  const [theme, setTheme] = useState<ThemeName>('rosa');
-  const [achievements, setAchievements] = useState<Achievements>({ trophies: [], stars: 0, notebooks: 0, totalStudyTime: 0 });
-  const achievementsRef = useRef(achievements);
-  useEffect(() => { achievementsRef.current = achievements; }, [achievements]);
-  const [gameState, setGameState] = useState<GameState>({ xp: 0, streak: 0, lastActiveDate: '', dailyMission: null, todayActive: false });
-  const gameStateRef = useRef(gameState);
-  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+  const [theme, setTheme] = useState<ThemeName>(() => (localStorage.getItem('tabuada_theme') as ThemeName) || 'rosa');
+  const [achievements, setAchievements] = useState<Achievements>(() => {
+    const saved = localStorage.getItem('tabuada_achievements');
+    if (saved) try { return JSON.parse(saved); } catch {}
+    return { trophies: [], stars: 0, notebooks: 0, totalStudyTime: 0 };
+  });
+
+  const [gameState, setGameState] = useState<GameState>(() => {
+    const saved = localStorage.getItem('tabuada_game_state');
+    const today = getToday();
+    if (saved) {
+      try {
+        const gs: GameState = JSON.parse(saved);
+        if (gs.lastActiveDate === today) return gs;
+        
+        const lastDate = new Date(gs.lastActiveDate);
+        const todayDate = new Date(today);
+        const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+        const newStreak = diffDays === 1 && gs.todayActive ? gs.streak : (diffDays > 1 ? 0 : gs.streak);
+        return { ...gs, streak: newStreak, dailyMission: generateDailyMission(today), todayActive: false, lastActiveDate: today };
+      } catch {}
+    }
+    return { xp: 0, streak: 0, lastActiveDate: today, dailyMission: generateDailyMission(today), todayActive: false };
+  });
 
   // UI state
   const [statsTab, setStatsTab] = useState<'tests' | 'studies'>('tests');
@@ -77,6 +102,29 @@ const App: React.FC = () => {
 
   const { currentCelebration, triggerCelebration } = useCelebrationQueue();
   const { playSound } = useSound(soundEnabled);
+
+  // Persistence Effects
+  useEffect(() => {
+    localStorage.setItem('tabuada_history', JSON.stringify(history));
+  }, [history]);
+
+  useEffect(() => {
+    localStorage.setItem('tabuada_study_history', JSON.stringify(studyHistory));
+  }, [studyHistory]);
+
+  useEffect(() => {
+    localStorage.setItem('tabuada_achievements', JSON.stringify(achievements));
+  }, [achievements]);
+
+  useEffect(() => {
+    localStorage.setItem('tabuada_game_state', JSON.stringify(gameState));
+  }, [gameState]);
+
+  useEffect(() => {
+    localStorage.setItem('tabuada_theme', theme);
+    document.body.className = '';
+    if (theme !== 'rosa') document.body.classList.add(`theme-${theme}`);
+  }, [theme]);
 
   const toggleSound = () => {
     setSoundEnabled(prev => {
@@ -124,116 +172,58 @@ const App: React.FC = () => {
     };
   }, [currentScreen]);
 
-  // Load saved data on mount
-  useEffect(() => {
-    const savedName = localStorage.getItem('tabuada_user_name');
-    const savedTheme = localStorage.getItem('tabuada_theme') as ThemeName | null;
-
-    if (savedTheme) {
-      setTheme(savedTheme);
-      document.body.className = '';
-      if (savedTheme !== 'rosa') document.body.classList.add(`theme-${savedTheme}`);
-    }
-
-    if (savedName) {
-      setUserName(savedName);
-    }
-
-    const saved = localStorage.getItem('tabuada_history');
-    if (saved) try { setHistory(JSON.parse(saved)); } catch {}
-    const savedStudies = localStorage.getItem('tabuada_study_history');
-    if (savedStudies) try { setStudyHistory(JSON.parse(savedStudies)); } catch {}
-    const savedAchievements = localStorage.getItem('tabuada_achievements');
-    if (savedAchievements) try { setAchievements(JSON.parse(savedAchievements)); } catch {}
-
-    const savedGameState = localStorage.getItem('tabuada_game_state');
-    if (savedGameState) {
-      try {
-        const gs: GameState = JSON.parse(savedGameState);
-        const today = getToday();
-        if (gs.lastActiveDate === today) {
-          setGameState(gs);
-        } else {
-          const lastDate = new Date(gs.lastActiveDate);
-          const todayDate = new Date(today);
-          const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
-          const newStreak = diffDays === 1 && gs.todayActive ? gs.streak : (diffDays > 1 ? 0 : gs.streak);
-          const newMission = generateDailyMission(today);
-          const updatedGs: GameState = { ...gs, streak: newStreak, dailyMission: newMission, todayActive: false };
-          setGameState(updatedGs);
-          localStorage.setItem('tabuada_game_state', JSON.stringify(updatedGs));
-        }
-      } catch {}
-    } else {
-      const today = getToday();
-      const initialGs: GameState = { xp: 0, streak: 0, lastActiveDate: today, dailyMission: generateDailyMission(today), todayActive: false };
-      setGameState(initialGs);
-      localStorage.setItem('tabuada_game_state', JSON.stringify(initialGs));
-    }
-  }, []);
-
   const addXP = useCallback((amount: number) => {
     setXpPopup(amount);
     setTimeout(() => setXpPopup(null), 1200);
 
-    const prev = gameStateRef.current;
-    const newXp = prev.xp + amount;
-    const oldLevel = getLevel(prev.xp);
-    const newLevel = getLevel(newXp);
-    const { streak, todayActive, lastActiveDate } = getStreakAfterActivity(prev);
+    setGameState(prev => {
+      const newXp = prev.xp + amount;
+      const oldLevel = getLevel(prev.xp);
+      const newLevel = getLevel(newXp);
+      const { streak, todayActive, lastActiveDate } = getStreakAfterActivity(prev);
 
-    const updatedGs: GameState = { ...prev, xp: newXp, streak, lastActiveDate, todayActive };
-    setGameState(updatedGs);
-    localStorage.setItem('tabuada_game_state', JSON.stringify(updatedGs));
+      if (newLevel.level > oldLevel.level) {
+        setTimeout(() => {
+          playSound('levelup');
+          triggerCelebration('levelup', () => {
+            confetti({ particleCount: 200, spread: 160, origin: { y: 0.5 }, colors: ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'] });
+          });
+        }, 300);
+      }
 
-    if (newLevel.level > oldLevel.level) {
-      setTimeout(() => {
-        playSound('levelup');
-        triggerCelebration('levelup', () => {
-          confetti({ particleCount: 200, spread: 160, origin: { y: 0.5 }, colors: ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'] });
-        });
-      }, 300);
-    }
-  }, [triggerCelebration]);
+      return { ...prev, xp: newXp, streak, lastActiveDate, todayActive };
+    });
+  }, [triggerCelebration, playSound]);
 
   const updateMissionProgress = useCallback((type: DailyMission['type'], amount: number, param?: number) => {
-    const prev = gameStateRef.current;
-    const mission = prev.dailyMission;
-    if (!mission || mission.completed || mission.type !== type) return;
-    if (type === 'acertar_tabuada' && param !== mission.param) return;
+    setGameState(prev => {
+      const mission = prev.dailyMission;
+      if (!mission || mission.completed || mission.type !== type) return prev;
+      if (type === 'acertar_tabuada' && param !== mission.param) return prev;
 
-    const newProgress = Math.min(mission.target, mission.progress + amount);
-    const completed = newProgress >= mission.target;
-    const updatedMission: DailyMission = { ...mission, progress: newProgress, completed };
-    const updatedGs: GameState = { ...prev, dailyMission: updatedMission };
+      const newProgress = Math.min(mission.target, mission.progress + amount);
+      const completed = newProgress >= mission.target;
+      const updatedMission: DailyMission = { ...mission, progress: newProgress, completed };
 
-    setGameState(updatedGs);
-    localStorage.setItem('tabuada_game_state', JSON.stringify(updatedGs));
+      if (completed && !mission.completed) {
+        setTimeout(() => {
+          playSound('mission');
+          addXP(XP_MISSION);
+          triggerCelebration('mission', () => {
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#fbbf24', '#ffffff'] });
+          });
+        }, 500);
+      }
 
-    if (completed && !mission.completed) {
-      setTimeout(() => {
-        playSound('mission');
-        addXP(XP_MISSION);
-        triggerCelebration('mission', () => {
-          confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#fbbf24', '#ffffff'] });
-        });
-      }, 500);
-    }
-  }, [addXP, triggerCelebration]);
+      return { ...prev, dailyMission: updatedMission };
+    });
+  }, [addXP, triggerCelebration, playSound]);
 
   const saveResult = useCallback((result: TestResult) => {
-    setHistory(prev => {
-      const newHistory = [result, ...prev];
-      localStorage.setItem('tabuada_history', JSON.stringify(newHistory));
-      return newHistory;
-    });
+    setHistory(prev => [result, ...prev]);
   }, []);
 
   const saveStudyResult = useCallback((cardsStudied: number, timeSpent: number) => {
-    const prev = achievementsRef.current;
-    const newTotalTime = prev.totalStudyTime + timeSpent;
-    const newNotebooks = Math.min(10, Math.floor(newTotalTime / (NOTEBOOK_MINUTES * 60)));
-
     const result: StudyResult = {
       date: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
       tables: studyTables,
@@ -242,42 +232,31 @@ const App: React.FC = () => {
       type: studyRandom ? 'Aleatória' : 'Sequencial',
     };
 
-    setStudyHistory(prev => {
-      const newHistory = [result, ...prev];
-      localStorage.setItem('tabuada_study_history', JSON.stringify(newHistory));
-      return newHistory;
+    setStudyHistory(prev => [result, ...prev]);
+
+    const isNewNotebook = Math.floor((achievements.totalStudyTime + timeSpent) / (NOTEBOOK_MINUTES * 60)) > achievements.notebooks;
+
+    setAchievements(prev => {
+      const newTotalTime = prev.totalStudyTime + timeSpent;
+      const newNotebooks = Math.min(10, Math.floor(newTotalTime / (NOTEBOOK_MINUTES * 60)));
+      return { ...prev, totalStudyTime: newTotalTime, notebooks: newNotebooks };
     });
 
-    setAchievements({
-      trophies: prev.trophies,
-      stars: prev.stars,
-      totalStudyTime: newTotalTime,
-      notebooks: newNotebooks,
-    });
-    localStorage.setItem('tabuada_achievements', JSON.stringify({
-      trophies: prev.trophies,
-      stars: prev.stars,
-      totalStudyTime: newTotalTime,
-      notebooks: newNotebooks,
-    }));
-
-    setTimeout(() => {
-      if (newNotebooks > prev.notebooks) {
-        playSound('achievement');
-        triggerCelebration('study');
-      } else {
-        playSound('complete');
-        triggerCelebration('study-complete', () => {
-          confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: ['#ec4899', '#8b5cf6', '#ffffff'] });
-        });
-      }
-    }, 0);
+    if (isNewNotebook) {
+      playSound('achievement');
+      triggerCelebration('study');
+    } else {
+      playSound('complete');
+      triggerCelebration('study-complete', () => {
+        confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: ['#ec4899', '#8b5cf6', '#ffffff'] });
+      });
+    }
 
     addXP(cardsStudied * XP_PER_STUDY_CARD);
 
     if (studyTables.length >= 3) updateMissionProgress('sessao_estudo', 1);
     updateMissionProgress('estudar_tempo', timeSpent);
-  }, [studyTables, studyRandom, addXP, updateMissionProgress, triggerCelebration]);
+  }, [studyTables, studyRandom, achievements, addXP, updateMissionProgress, triggerCelebration, playSound]);
 
   const toggleStudyTable = (table: number) => {
     setStudyTables(prev => prev.includes(table) ? prev.filter(t => t !== table) : [...prev, table]);
@@ -365,8 +344,6 @@ const App: React.FC = () => {
   };
 
   const finishTest = (finalScore: number) => {
-    const prevAch = achievementsRef.current;
-
     const result: TestResult = {
       date: new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
       score: finalScore,
@@ -377,9 +354,26 @@ const App: React.FC = () => {
     };
     saveResult(result);
 
-    const newTotalTime = prevAch.totalStudyTime + elapsedTime;
-    const newNotebooks = Math.min(10, Math.floor(newTotalTime / (NOTEBOOK_MINUTES * 60)));
-    let updatedAch: Achievements = { ...prevAch, totalStudyTime: newTotalTime, notebooks: newNotebooks };
+    const table = testTables[0];
+    const isNewTrophy = finalScore === 10 && testTables.length === 1 && !achievements.trophies.includes(table);
+    const isNewStar = finalScore === 10 && testTables.length > 1 && achievements.stars < 10;
+
+    setAchievements(prev => {
+      const newTotalTime = prev.totalStudyTime + elapsedTime;
+      const newNotebooks = Math.min(10, Math.floor(newTotalTime / (NOTEBOOK_MINUTES * 60)));
+      let updated = { ...prev, totalStudyTime: newTotalTime, notebooks: newNotebooks };
+
+      if (finalScore === 10) {
+        if (testTables.length === 1) {
+          if (!prev.trophies.includes(table)) {
+            updated.trophies = [...prev.trophies, table];
+          }
+        } else if (testTables.length > 1 && prev.stars < 10) {
+          updated.stars = prev.stars + 1;
+        }
+      }
+      return updated;
+    });
 
     if (finalScore === 10) {
       const bonusXP = testTables.length === 1 ? XP_BONUS_SINGLE : XP_BONUS_MULTI;
@@ -388,9 +382,7 @@ const App: React.FC = () => {
 
       if (testTables.length === 1) {
         confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 }, colors: ['#f59e0b', '#fbbf24', '#ffffff'] });
-        const table = testTables[0];
-        if (!prevAch.trophies.includes(table)) {
-          updatedAch.trophies = [...prevAch.trophies, table];
+        if (isNewTrophy) {
           playSound('achievement');
           setTimeout(() => {
             triggerCelebration('trophy', () => {
@@ -398,9 +390,8 @@ const App: React.FC = () => {
             });
           }, 100);
         }
-      } else if (testTables.length > 1 && prevAch.stars < 10) {
+      } else if (testTables.length > 1 && isNewStar) {
         playSound('achievement');
-        updatedAch.stars = prevAch.stars + 1;
         setTimeout(() => {
           triggerCelebration('star', () => {
             const duration = 2 * 1000;
@@ -418,9 +409,6 @@ const App: React.FC = () => {
         }, 100);
       }
     }
-
-    setAchievements(updatedAch);
-    localStorage.setItem('tabuada_achievements', JSON.stringify(updatedAch));
 
     setCurrentScreen('test-result');
   };
