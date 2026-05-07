@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Play, BookOpen, Target, Trophy, Zap, RefreshCw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Play, BookOpen, Target, Trophy, Zap, RefreshCw, AlertCircle, Wrench } from 'lucide-react';
 import { pageVariants } from '../motionVariants';
 import type { TestResult, StudyResult, Achievements, GameState } from '../types';
 import { getLevel, getLevelProgress, formatTime } from '../utils';
@@ -18,12 +19,42 @@ interface Props {
   onResetInputChange: (value: string) => void;
   resetInput: string;
   onLevelInfoOpen: () => void;
+  onRepairTrophies: (trophies: number[]) => void;
 }
 
 export default function StatsScreen({
   history, studyHistory, achievements, gameState, statsTab, showReset,
   onBack, onStatsTabChange, onResetToggle, onResetConfirm, onResetInputChange, resetInput, onLevelInfoOpen,
+  onRepairTrophies,
 }: Props) {
+  const [showRepair, setShowRepair] = useState(false);
+  const [repairInput, setRepairInput] = useState('');
+  const [repairTrophies, setRepairTrophies] = useState<number[]>([]);
+  const [repairUnlocked, setRepairUnlocked] = useState(false);
+
+  const handleRepairUnlock = () => {
+    if (repairInput === 'root') {
+      setRepairUnlocked(true);
+      setRepairTrophies([...achievements.trophies]);
+      setRepairInput('');
+    } else {
+      alert('Senha incorreta!');
+    }
+  };
+
+  const toggleRepairTrophy = (t: number) => {
+    setRepairTrophies(prev =>
+      prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]
+    );
+  };
+
+  const handleSaveRepair = () => {
+    onRepairTrophies(repairTrophies);
+    setShowRepair(false);
+    setRepairUnlocked(false);
+    setRepairTrophies([]);
+  };
+
   return (
     <motion.div
       key="stats"
@@ -36,9 +67,14 @@ export default function StatsScreen({
       <div className="glass-panel flex-col" style={{ gap: '0.8rem' }}>
         <div className="flex-row" style={{ marginBottom: '0' }}>
           <h2 style={{ margin: 0, fontSize: '1.3rem' }}>📊 Estatísticas</h2>
-          <button className="btn btn-secondary btn-icon" onClick={onResetToggle} style={{ padding: '0.4rem' }}>
-            <RefreshCw size={16} color="var(--error)" />
-          </button>
+          <div className="flex-row" style={{ gap: '0.4rem' }}>
+            <button className="btn btn-secondary btn-icon" onClick={() => setShowRepair(o => !o)} style={{ padding: '0.4rem' }} title="Reparar troféus">
+              <Wrench size={16} color="var(--accent)" />
+            </button>
+            <button className="btn btn-secondary btn-icon" onClick={onResetToggle} style={{ padding: '0.4rem' }}>
+              <RefreshCw size={16} color="var(--error)" />
+            </button>
+          </div>
         </div>
 
         <div style={{
@@ -221,6 +257,70 @@ export default function StatsScreen({
             ))
           )}
         </div>
+
+        {/* Trophy Repair Panel */}
+        {showRepair && (
+          <div className="glass-panel" style={{ background: 'rgba(245, 158, 11, 0.08)', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+            <div className="flex-row" style={{ gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <Wrench size={16} color="var(--accent)" />
+              <p style={{ fontSize: '0.85rem', fontWeight: 700, margin: 0 }}>Reparar Troféus</p>
+            </div>
+            {!repairUnlocked ? (
+              <>
+                <p style={{ fontSize: '0.72rem', opacity: 0.7, marginBottom: '0.5rem' }}>
+                  Use isto para restaurar troféus perdidos por erro. Requer senha de administrador.
+                </p>
+                <input
+                  type="password"
+                  value={repairInput}
+                  onChange={e => setRepairInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleRepairUnlock()}
+                  className="input-field"
+                  placeholder="Senha de administrador"
+                  style={{ fontSize: '0.9rem', padding: '0.5rem 0.8rem' }}
+                />
+                <div className="grid-cols-2" style={{ marginTop: '0.8rem' }}>
+                  <button className="btn btn-secondary" onClick={() => setShowRepair(false)}>Cancelar</button>
+                  <button className="btn btn-primary" style={{ background: 'var(--accent)' }} onClick={handleRepairUnlock}>Desbloquear</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: '0.72rem', opacity: 0.7, marginBottom: '0.6rem' }}>
+                  Selecione os troféus que este utilizador já ganhou:
+                </p>
+                <div className="flex-row" style={{ gap: '0.3rem', flexWrap: 'wrap', marginBottom: '0.8rem' }}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(t => (
+                    <button
+                      key={t}
+                      onClick={() => toggleRepairTrophy(t)}
+                      style={{
+                        flex: '0 0 calc(20% - 0.3rem)',
+                        padding: '0.4rem 0',
+                        borderRadius: '0.5rem',
+                        border: repairTrophies.includes(t) ? '2px solid #f59e0b' : '2px solid rgba(255,255,255,0.1)',
+                        background: repairTrophies.includes(t) ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.03)',
+                        cursor: 'pointer',
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <Trophy size={16} color={repairTrophies.includes(t) ? '#f59e0b' : '#94a3b8'} fill={repairTrophies.includes(t) ? '#f59e0b' : 'transparent'} />
+                      <span style={{ fontSize: '0.6rem', fontWeight: 900, color: repairTrophies.includes(t) ? '#f59e0b' : '#94a3b8' }}>{t}</span>
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: '0.65rem', opacity: 0.5, marginBottom: '0.5rem' }}>
+                  {repairTrophies.length} troféu(s) selecionado(s)
+                </p>
+                <div className="grid-cols-2">
+                  <button className="btn btn-secondary" onClick={() => { setShowRepair(false); setRepairUnlocked(false); }}>Cancelar</button>
+                  <button className="btn btn-primary" style={{ background: '#f59e0b' }} onClick={handleSaveRepair}>Guardar</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {showReset && (
           <div className="glass-panel" style={{ background: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.2)' }}>

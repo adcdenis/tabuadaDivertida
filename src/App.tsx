@@ -500,6 +500,10 @@ const App: React.FC = () => {
     }
   };
 
+  const handleRepairTrophies = useCallback((trophies: number[]) => {
+    setAchievements(prev => ({ ...prev, trophies }));
+  }, []);
+
   return (
     <div className="app-container" style={{ position: 'relative' }}>
       <BackgroundSymbols />
@@ -609,6 +613,7 @@ const App: React.FC = () => {
             onResetInputChange={setResetInput}
             resetInput={resetInput}
             onLevelInfoOpen={() => setShowLevelInfo(true)}
+            onRepairTrophies={handleRepairTrophies}
           />
         )}
       </AnimatePresence>
