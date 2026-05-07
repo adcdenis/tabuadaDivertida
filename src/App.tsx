@@ -63,9 +63,37 @@ const App: React.FC = () => {
   const [tempName, setTempName] = useState('');
   const [theme, setTheme] = useState<ThemeName>(() => (localStorage.getItem('tabuada_theme') as ThemeName) || 'rosa');
   const [achievements, setAchievements] = useState<Achievements>(() => {
-    const saved = localStorage.getItem('tabuada_achievements');
-    if (saved) try { return JSON.parse(saved); } catch {}
-    return { trophies: [], stars: 0, notebooks: 0, totalStudyTime: 0 };
+    let ach: Achievements = { trophies: [], stars: 0, notebooks: 0, totalStudyTime: 0 };
+    const savedAch = localStorage.getItem('tabuada_achievements');
+    if (savedAch) try { ach = JSON.parse(savedAch); } catch {}
+
+    // Rebuild trophies from test history (source of truth) to repair any corrupted data
+    const savedHistory = localStorage.getItem('tabuada_history');
+    if (savedHistory) {
+      try {
+        const history: TestResult[] = JSON.parse(savedHistory);
+        const earnedTrophies: number[] = [
+          ...new Set(
+            history
+              .filter(h => h.score === 10 && h.tables && h.tables.length === 1)
+              .map(h => h.tables[0])
+          )
+        ];
+        const earnedStars = Math.min(
+          10,
+          history.filter(h => h.score === 10 && h.tables && h.tables.length > 1).length
+        );
+        // Only repair if history shows MORE progress than stored (never downgrade)
+        if (earnedTrophies.length > ach.trophies.length) {
+          ach = { ...ach, trophies: earnedTrophies };
+        }
+        if (earnedStars > ach.stars) {
+          ach = { ...ach, stars: earnedStars };
+        }
+      } catch {}
+    }
+
+    return ach;
   });
   const achievementsRef = useRef(achievements);
   useEffect(() => { achievementsRef.current = achievements; }, [achievements]);
@@ -115,7 +143,15 @@ const App: React.FC = () => {
   }, [studyHistory]);
 
   useEffect(() => {
-    localStorage.setItem('tabuada_achievements', JSON.stringify(achievements));
+    // Safety: merge with existing stored trophies to never silently lose earned trophies
+    const stored = localStorage.getItem('tabuada_achievements');
+    let storedTrophies: number[] = [];
+    let storedStars = 0;
+    if (stored) try { const p = JSON.parse(stored); storedTrophies = p.trophies || []; storedStars = p.stars || 0; } catch {}
+    const mergedTrophies = [...new Set([...storedTrophies, ...achievements.trophies])];
+    const mergedStars = Math.max(storedStars, achievements.stars);
+    const toSave = { ...achievements, trophies: mergedTrophies, stars: mergedStars };
+    localStorage.setItem('tabuada_achievements', JSON.stringify(toSave));
   }, [achievements]);
 
   useEffect(() => {
