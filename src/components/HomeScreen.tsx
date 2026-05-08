@@ -139,12 +139,33 @@ export default function HomeScreen({
           <div className="flex-col" style={{ gap: '0.3rem', marginBottom: '0.8rem' }}>
             <span style={{ fontSize: '0.65rem', fontWeight: 800, opacity: 0.5 }}>TROFÉUS CONQUISTADOS</span>
             <div className="flex-row" style={{ gap: '0.25rem', width: '100%' }}>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(t => (
-                <div key={t} className="flex-col flex-center" style={{ flex: 1, padding: '0.3rem 0', background: achievements.trophies.includes(t) ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.03)', borderRadius: '0.4rem', opacity: achievements.trophies.includes(t) ? 1 : 0.2 }}>
-                  <Trophy size={14} color={achievements.trophies.includes(t) ? "#f59e0b" : "#cbd5e1"} />
-                  <span style={{ fontSize: '0.6rem', fontWeight: 900 }}>{t}</span>
-                </div>
-              ))}
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(t => {
+                const isEarned = achievements.trophies.includes(t);
+                return (
+                  <div 
+                    key={t} 
+                    className="flex-col flex-center" 
+                    style={{ 
+                      flex: 1, 
+                      padding: '0.4rem 0', 
+                      background: isEarned ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(251, 191, 36, 0.1))' : 'rgba(255,255,255,0.03)', 
+                      borderRadius: '0.5rem', 
+                      opacity: isEarned ? 1 : 0.3,
+                      border: isEarned ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid transparent',
+                      boxShadow: isEarned ? '0 2px 8px rgba(245, 158, 11, 0.2)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <Trophy 
+                      size={16} 
+                      color={isEarned ? "#f59e0b" : "#94a3b8"} 
+                      fill={isEarned ? "#f59e0b" : "transparent"}
+                      strokeWidth={2.5}
+                    />
+                    <span style={{ fontSize: '0.65rem', fontWeight: 900, color: isEarned ? "#f59e0b" : "#94a3b8" }}>{t}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

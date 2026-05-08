@@ -120,7 +120,7 @@ export default function StatsScreen({
           </div>
           <div className="stat-card" style={{ borderLeft: '3px solid #f59e0b' }}>
             <div className="flex-row" style={{ gap: '0.3rem', marginBottom: '0.2rem', justifyContent: 'flex-start' }}>
-              <Trophy size={13} color="#f59e0b" />
+              <Trophy size={14} color="#f59e0b" fill="#f59e0b" strokeWidth={2.5} />
               <span className="stat-label" style={{ marginBottom: 0 }}>TROFÉUS</span>
             </div>
             <span className="stat-value" style={{ fontSize: '1.3rem' }}>{achievements.trophies.length}<span style={{ fontSize: '0.7rem', opacity: 0.5 }}>/10</span></span>
@@ -305,7 +305,7 @@ export default function StatsScreen({
                         transition: 'all 0.15s',
                       }}
                     >
-                      <Trophy size={16} color={repairTrophies.includes(t) ? '#f59e0b' : '#94a3b8'} fill={repairTrophies.includes(t) ? '#f59e0b' : 'transparent'} />
+                      <Trophy size={16} color={repairTrophies.includes(t) ? '#f59e0b' : '#94a3b8'} fill={repairTrophies.includes(t) ? '#f59e0b' : 'transparent'} strokeWidth={2.5} />
                       <span style={{ fontSize: '0.6rem', fontWeight: 900, color: repairTrophies.includes(t) ? '#f59e0b' : '#94a3b8' }}>{t}</span>
                     </button>
                   ))}

@@ -16,7 +16,7 @@ export default function CelebrationOverlay({ celebration, xp }: Props) {
         {celebration === 'trophy' ? (
           <>
             <div className="trophy-glow">
-              <Trophy size={150} color="#f59e0b" fill="#f59e0b" />
+              <Trophy size={150} color="#f59e0b" fill="#f59e0b" strokeWidth={2.5} />
             </div>
             <h1 className="gradient-text" style={{ fontSize: '2.5rem', marginTop: '1rem', textAlign: 'center' }}>
               TROFÉU DE OURO!
